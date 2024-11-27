@@ -300,8 +300,13 @@ ul.voice_states > li[data-userid="${userID}"] {
       if (animationType === 'bounce') {
         globalCSS += `
 [class*="Voice_avatarSpeaking__"] {
-  animation: speak-jump 300ms infinite alternate ease-in-out;
-}
+    animation-duration: 626ms;
+  position: relative;
+  filter: brightness(100%);
+  border-color: #FFFFFF;
+  animation: 300ms infinite alternate ease-in-out speak-jump;
+  z-index: 1;
+} 
 @keyframes speak-jump {
   0% { bottom: 0; }
   50% { bottom: 8px; }
