@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord StreamKit Overlay 全体＆個別設定ジェネレーター（アルファ版）</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input, select, button, textarea {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      font-family: monospace;
+    }
+    .user-settings {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      background: #f1f1f1;
+      border-radius: 5px;
+    }
+    .border-options,
+    .spacing-options {
+      display: none; /* 初期状態で非表示 */
+    }
+  </style>
+</head>
+<body>
+  <h1>Discord StreamKit Overlay 全体＆個別設定ジェネレーター</h1>
+
+  <!-- URL設定フォーム -->
+  <h2>URL設定</h2>
+  <label for="serverChannelID">サーバー/VCチャンネルID:</label>
+  <input type="text" id="serverChannelID" placeholder="例: 123456789012345678">
+
+  <label for="nameDisplay">ユーザー名を表示:</label>
+  <select id="nameDisplay" onchange="toggleNameOptions()">
+    <option value="false">なし</option>
+    <option value="true">あり</option>
+  </select>
+
+  <div class="name-options">
+    <label for="textSize">名前のテキストサイズ (px):</label>
+    <input type="number" id="textSize" placeholder="例: 14" value="14">
+  </div>
+
+  <button onclick="generateURL()">URLを生成</button>
+
+  <div class="output">
+    <h3>生成されたURL:</h3>
+    <textarea id="generatedURL" readonly></textarea>
+  </div>
+
+  <!-- 全体設定フォーム -->
+  <h2>全体設定</h2>
+  <label for="avatarSize">アバターサイズ (px):</label>
+  <input type="number" id="avatarSize" placeholder="例: 80" value="80">
+
+  <label for="avatarShape">アバターの形状:</label>
+  <select id="avatarShape">
+    <option value="circle">丸型</option>
+    <option value="rounded-square">角丸の四角</option>
+  </select>
+
+  <label for="borderEnabled">外枠:</label>
+  <select id="borderEnabled" onchange="toggleBorderOptions()">
+    <option value="none">なし</option>
+    <option value="enabled">あり</option>
+  </select>
+
+  <div class="border-options">
+    <label for="avatarBorderColor">外枠の色 (Hexまたは名前):</label>
+    <input type="text" id="avatarBorderColor" placeholder="例: #ff0000 または red" value="#ff0000">
+
+    <label for="avatarBorderWidth">外枠の太さ (px):</label>
+    <input type="number" id="avatarBorderWidth" placeholder="例: 3" value="3">
+  </div>
+
+  <label for="layout">レイアウト:</label>
+  <select id="layout">
+    <option value="vertical">縦並び (名前を右側に配置)</option>
+    <option value="horizontal">横並び (名前を下に配置)</option>
+  </select>
+
+  <label for="spacingType">アバター間の隙間:</label>
+  <select id="spacingType" onchange="toggleSpacingOptions()">
+    <option value="auto">自動</option>
+    <option value="custom">カスタム</option>
+  </select>
+
+  <div class="spacing-options">
+    <label for="avatarSpacing">隙間のサイズ (px):</label>
+    <input type="number" id="avatarSpacing" placeholder="例: 20" value="20">
+  </div>
+
+  <label for="animationType">アニメーション:</label>
+  <select id="animationType">
+    <option value="none">なし</option>
+    <option value="bounce">ピョコピョコ</option>
+  </select>
+
+  <label for="hiddenUsers">非表示にするユーザーID（カンマ区切り）:</label>
+  <input type="text" id="hiddenUsers" placeholder="例: 123456789012345678,987654321098765432">
+
+  <button onclick="generateGlobalCSS()">全体設定のCSSを生成</button>
+
+  <div class="output">
+    <h3>全体設定のCSS:</h3>
+    <textarea id="globalCSSOutput" readonly></textarea>
+  </div>
+
+  <!-- 個別ユーザー設定フォーム -->
+  <h2>個別ユーザー設定</h2>
+  <div id="userSettingsContainer"></div>
+
+  <button onclick="addUserSettings()">ユーザー設定を追加</button>
+
+  <button onclick="generateFullCSS()">全体＆個別CSSを統合して生成</button>
+
+  <div class="output">
+    <h3>統合されたCSS:</h3>
+    <textarea id="fullCSSOutput" readonly></textarea>
+  </div>
+
+  <script>
+    let userCSSList = [];
+
+    function toggleNameOptions() {
+      const nameDisplay = document.getElementById('nameDisplay').value;
+      const nameOptions = document.querySelector('.name-options');
+      nameOptions.style.display = nameDisplay === 'true' ? 'block' : 'none';
+    }
+
+    function toggleBorderOptions() {
+      const borderEnabled = document.getElementById('borderEnabled').value;
+      const borderOptions = document.querySelector('.border-options');
+      borderOptions.style.display = borderEnabled === 'enabled' ? 'block' : 'none';
+    }
+
+    function toggleSpacingOptions() {
+      const spacingType = document.getElementById('spacingType').value;
+      const spacingOptions = document.querySelector('.spacing-options');
+      spacingOptions.style.display = spacingType === 'custom' ? 'block' : 'none';
+    }
+
+    function generateURL() {
+      const serverChannelID = document.getElementById('serverChannelID').value.trim();
+      const nameDisplay = document.getElementById('nameDisplay').value;
+      const textSize = document.getElementById('textSize').value || 14;
+
+      const hideNames = nameDisplay === 'true' ? 'false' : 'true';
+      const url = `https://streamkit.discord.com/overlay/voice/${serverChannelID}/${serverChannelID}?icon=true&online=true&logo=white&text_color=%23ffffff&text_size=${textSize}&hide_names=${hideNames}&text_outline_color=%23000000&text_outline_size=0&text_shadow_color=%23000000&text_shadow_size=0&bg_color=%231e2124&bg_opacity=0.95&bg_shadow_color=%23000000&bg_shadow_size=0&invite_code=rfyucx9nDw&limit_speaking=false&small_avatars=false&fade_chat=0&streamer_avatar_first=false`;
+
+      document.getElementById('generatedURL').value = url;
+    }
+
+    function addUserSettings() {
+      const container = document.createElement('div');
+      container.classList.add('user-settings');
+
+      container.innerHTML = `
+        <label for="userNameMemo">名前のメモ:</label>
+        <input type="text" placeholder="例: ユーザーA" class="userNameMemo">
+
+        <label for="userID">ユーザーID:</label>
+        <input type="text" placeholder="例: 123456789012345678" class="userID">
+
+        <label for="userAvatarSize">アバターサイズ (px):</label>
+        <input type="number" placeholder="例: 80" value="80" class="userAvatarSize">
+
+        <label for="userSpacingType">隣との隙間:</label>
+        <select class="userSpacingType">
+          <option value="auto">自動</option>
+          <option value="custom">カスタム</option>
+        </select>
+
+        <label for="userAvatarSpacing">隙間のサイズ (px):</label>
+        <input type="number" placeholder="例: 20" value="20" class="userAvatarSpacing">
+
+        <label for="userBorderColor">外枠の色 (Hexまたは名前):</label>
+        <input type="text" placeholder="例: #ff0000" class="userBorderColor">
+
+        <label for="userBorderWidth">外枠の太さ (px):</label>
+        <input type="number" placeholder="例: 3" class="userBorderWidth">
+
+        <button onclick="removeUserSettings(this)">削除</button>
+      `;
+      document.getElementById('userSettingsContainer').appendChild(container);
+    }
+
+    function removeUserSettings(button) {
+      const parent = button.parentNode;
+      parent.remove();
+    }
+
+    function generateUserCSS() {
+      userCSSList = [];
+      const userSettings = document.querySelectorAll('.user-settings');
+      userSettings.forEach(setting => {
+        const userNameMemo = setting.querySelector('.userNameMemo').value.trim();
+        const userID = setting.querySelector('.userID').value.trim();
+        const userAvatarSize = setting.querySelector('.userAvatarSize').value;
+        const userSpacingType = setting.querySelector('.userSpacingType').value;
+        const userAvatarSpacing = setting.querySelector('.userAvatarSpacing').value;
+        const userBorderColor = setting.querySelector('.userBorderColor').value.trim();
+        const userBorderWidth = setting.querySelector('.userBorderWidth').value;
+
+        if (!userID) return;
+
+        let userCSS = `
+/* ${userNameMemo || '未設定'} (${userID}) */
+img[src*="${userID}"] {
+  width: ${userAvatarSize}px;
+  height: ${userAvatarSize}px;
+  border: ${userBorderWidth}px solid ${userBorderColor};
+}`;
+
+        if (userSpacingType === 'custom') {
+          userCSS += `
+ul.voice_states > li[data-userid="${userID}"] {
+  margin: 0 ${userAvatarSpacing}px;
+}`;
+        }
+
+        userCSSList.push(userCSS);
+      });
+    }
+
+    function generateGlobalCSS() {
+      const avatarSize = document.getElementById('avatarSize').value;
+      const avatarShape = document.getElementById('avatarShape').value;
+      const borderEnabled = document.getElementById('borderEnabled').value;
+      const avatarBorderColor = document.getElementById('avatarBorderColor').value;
+      const avatarBorderWidth = document.getElementById('avatarBorderWidth').value;
+      const layout = document.getElementById('layout').value;
+      const spacingType = document.getElementById('spacingType').value;
+      const avatarSpacing = document.getElementById('avatarSpacing').value;
+      const animationType = document.getElementById('animationType').value;
+      const hiddenUsers = document.getElementById('hiddenUsers').value.split(',').map(id => id.trim());
+
+      let globalCSS = `
+ul.voice_states {
+  display: flex;
+  flex-direction: ${layout === 'vertical' ? 'column' : 'row'};
+  gap: ${spacingType === 'custom' ? avatarSpacing + 'px' : 'auto'};
+}
+img[src*="avatars/"] {
+  width: ${avatarSize}px;
+  height: ${avatarSize}px;
+  border-radius: ${avatarShape === 'circle' ? '50%' : '15%'};
+`;
+
+      if (borderEnabled === 'enabled') {
+        globalCSS += `  border: ${avatarBorderWidth}px solid ${avatarBorderColor};\n`;
+      } else {
+        globalCSS += `  border: none;\n`;
+      }
+
+      globalCSS += `}\n`;
+
+      // 非表示ユーザーCSS
+      hiddenUsers.forEach(userID => {
+        if (userID) {
+          globalCSS += `
+/* ${userID} を非表示 */
+ul.voice_states > li[data-userid="${userID}"] {
+  display: none;
+}`;
+        }
+      });
+
+      if (animationType === 'bounce') {
+        globalCSS += `
+[class*="Voice_avatarSpeaking__"] {
+  animation: speak-jump 300ms infinite alternate ease-in-out;
+}
+@keyframes speak-jump {
+  0% { bottom: 0; }
+  50% { bottom: 8px; }
+  100% { bottom: 0; }
+}`;
+      }
+
+      document.getElementById('globalCSSOutput').value = globalCSS;
+    }
+
+    function generateFullCSS() {
+      generateUserCSS();
+      const globalCSS = document.getElementById('globalCSSOutput').value;
+      const fullCSS = globalCSS + '\n' + userCSSList.join('\n');
+      document.getElementById('fullCSSOutput').value = fullCSS;
+    }
+  </script>
+</body>
+</html>
