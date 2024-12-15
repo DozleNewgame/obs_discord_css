@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Discord StreamKit Overlay 全体＆個別設定ジェネレーター（アルファ版）</title>
+  <title>Discord StreamKit Overlay 全体＆個別設定ジェネレーター（改良版）</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      margin: 0 auto;
+      max-width: 1200px; /* 必要に応じて変更 */
+      padding: 0 20px; /* 必要に応じて左右の余白を調整 */
       line-height: 1.6;
     }
     label {
@@ -49,12 +51,17 @@
     }
     .border-options,
     .spacing-options {
-      display: none; /* 初期状態で非表示 */
+      display: none;
     }
+    .standImageURLContainer {
+      display: none;
+    }
+
+    
   </style>
 </head>
 <body>
-  <h1>Discord StreamKit Overlay 全体＆個別設定ジェネレーター（アルファ版）</h1>
+  <h1>Discord StreamKit Overlay 全体＆個別設定ジェネレーター（改良版）</h1>
 
   <!-- URL設定フォーム -->
   <h2>URL設定</h2>
@@ -211,47 +218,31 @@
         <label for="userBorderWidth">外枠の太さ (px):</label>
         <input type="number" placeholder="例: 3" class="userBorderWidth">
 
+        <label for="changeStandImage">立ち絵を変更:</label>
+        <select class="changeStandImage" onchange="toggleImageInput(this)">
+          <option value="false">しない</option>
+          <option value="true">する</option>
+        </select>
+
+        <div class="standImageURLContainer">
+          <label for="standImageURL">立ち絵画像URL:</label>
+          <input type="text" placeholder="例: https://example.com/image.png" class="standImageURL">
+        </div>
+
         <button onclick="removeUserSettings(this)">削除</button>
       `;
       document.getElementById('userSettingsContainer').appendChild(container);
     }
 
+    function toggleImageInput(selectElement) {
+      const container = selectElement.closest('.user-settings');
+      const imageInputContainer = container.querySelector('.standImageURLContainer');
+      imageInputContainer.style.display = selectElement.value === 'true' ? 'block' : 'none';
+    }
+
     function removeUserSettings(button) {
       const parent = button.parentNode;
       parent.remove();
-    }
-
-    function generateUserCSS() {
-      userCSSList = [];
-      const userSettings = document.querySelectorAll('.user-settings');
-      userSettings.forEach(setting => {
-        const userNameMemo = setting.querySelector('.userNameMemo').value.trim();
-        const userID = setting.querySelector('.userID').value.trim();
-        const userAvatarSize = setting.querySelector('.userAvatarSize').value;
-        const userSpacingType = setting.querySelector('.userSpacingType').value;
-        const userAvatarSpacing = setting.querySelector('.userAvatarSpacing').value;
-        const userBorderColor = setting.querySelector('.userBorderColor').value.trim();
-        const userBorderWidth = setting.querySelector('.userBorderWidth').value;
-
-        if (!userID) return;
-
-        let userCSS = `
-/* ${userNameMemo || '未設定'} (${userID}) */
-img[src*="${userID}"] {
-  width: ${userAvatarSize}px;
-  height: ${userAvatarSize}px;
-  border: ${userBorderWidth}px solid ${userBorderColor};
-}`;
-
-        if (userSpacingType === 'custom') {
-          userCSS += `
-ul.voice_states > li[data-userid="${userID}"] {
-  margin: 0 ${userAvatarSpacing}px;
-}`;
-        }
-
-        userCSSList.push(userCSS);
-      });
     }
 
     function generateGlobalCSS() {
@@ -286,7 +277,6 @@ img[src*="avatars/"] {
 
       globalCSS += `}\n`;
 
-      // 非表示ユーザーCSS
       hiddenUsers.forEach(userID => {
         if (userID) {
           globalCSS += `
@@ -315,6 +305,54 @@ ul.voice_states > li[data-userid="${userID}"] {
       }
 
       document.getElementById('globalCSSOutput').value = globalCSS;
+    }
+
+    function generateUserCSS() {
+      userCSSList = [];
+      const userSettings = document.querySelectorAll('.user-settings');
+      userSettings.forEach(setting => {
+        const userNameMemo = setting.querySelector('.userNameMemo').value.trim();
+        const userID = setting.querySelector('.userID').value.trim();
+        const userAvatarSize = setting.querySelector('.userAvatarSize').value;
+        const userSpacingType = setting.querySelector('.userSpacingType').value;
+        const userAvatarSpacing = setting.querySelector('.userAvatarSpacing').value;
+        const userBorderColor = setting.querySelector('.userBorderColor').value.trim();
+        const userBorderWidth = setting.querySelector('.userBorderWidth').value;
+        const changeStandImage = setting.querySelector('.changeStandImage').value;
+        const standImageURL = setting.querySelector('.standImageURL').value.trim();
+
+        if (!userID) return;
+
+        let userCSS = `
+/* ${userNameMemo || '未設定'} (${userID}) */
+img[src*="${userID}"] {
+  width: ${userAvatarSize}px;
+  height: ${userAvatarSize}px;
+  border: ${userBorderWidth}px solid ${userBorderColor};
+}`;
+
+        if (userSpacingType === 'custom') {
+          userCSS += `
+ul.voice_states > li[data-userid="${userID}"] {
+  margin: 0 ${userAvatarSpacing}px;
+}`;
+        }
+
+        if (changeStandImage === 'true' && standImageURL) {
+          userCSS += `
+img[src*="${userID}"] {
+  content: url("${standImageURL}");
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 400px;
+  border-radius: 0;
+  border: none;
+}`;
+        }
+
+        userCSSList.push(userCSS);
+      });
     }
 
     function generateFullCSS() {
